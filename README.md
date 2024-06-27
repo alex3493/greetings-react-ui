@@ -43,7 +43,7 @@ is not persisted anywhere. This is a pure demo feature for Pusher connectivity.
 1. Clone this repo
 2. cd to project root folder
 3. cp .env.development .env.development.local
-4. Edit .env.development.local file: set `REACT_APP_PUSHER_APP_KEY` and `VUE_APP_PUSHER_CLUSTER` env variables using your account data.
+4. Edit .env.development.local file: set `REACT_APP_PUSHER_APP_KEY` and `REACT_APP_PUSHER_CLUSTER` env variables using your account data.
 
 ### Docker (prod mode)
 

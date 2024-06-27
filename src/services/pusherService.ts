@@ -28,7 +28,7 @@ export default class PusherService {
               }
             }
           }),
-          cluster: process.env.VUE_APP_PUSHER_CLUSTER || 'mt1'
+          cluster: process.env.REACT_APP_PUSHER_CLUSTER || 'mt1'
         }
       )
     }

@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { Button, Form, Modal } from 'react-bootstrap'
+import { Button, Form, Modal, Spinner } from 'react-bootstrap'
 import ValidatedControl from '@/components/ValidatedControl'
 
 type Props = {
   show: boolean
+  disableSave: boolean
   handleClose: () => void
   submit: (greeting: string) => void
 }
 
 function AdminGreeting(props: Props) {
-  const { show, handleClose, submit } = props
+  const { show, disableSave, handleClose, submit } = props
 
   const [greeting, setGreeting] = useState<string>('')
 
@@ -44,7 +45,20 @@ function AdminGreeting(props: Props) {
           <Button variant="secondary" onClick={handleClose}>
             Close
           </Button>
-          <Button variant="primary" onClick={() => submit(greeting)}>
+          <Button
+            variant="primary"
+            onClick={() => submit(greeting)}
+            disabled={disableSave}
+          >
+            {disableSave && (
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />
+            )}{' '}
             Send
           </Button>
         </Modal.Footer>

@@ -17,6 +17,9 @@ function NavBar() {
   const [showAdminNotification, setShowAdminNotification] =
     useState<boolean>(false)
 
+  const [sendingAdminGreeting, setSendingAdminGreeting] =
+    useState<boolean>(false)
+
   const { removeErrors } = useApiValidation()
 
   const handleClose = () => {
@@ -25,6 +28,7 @@ function NavBar() {
   }
 
   const submitAdminNotification = async (greeting: string) => {
+    setSendingAdminGreeting(true)
     api
       .post(ADMIN_GREETING_API_ROUTE, {
         greeting
@@ -33,6 +37,9 @@ function NavBar() {
         handleClose()
       })
       .catch((error) => console.log('Error sending admin greeting', error))
+      .finally(() => {
+        setSendingAdminGreeting(false)
+      })
   }
 
   return (
@@ -68,6 +75,7 @@ function NavBar() {
       </Navbar>
       <AdminGreeting
         show={showAdminNotification}
+        disableSave={sendingAdminGreeting}
         handleClose={handleClose}
         submit={(greeting) => submitAdminNotification(greeting)}
       />

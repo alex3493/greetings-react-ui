@@ -1,6 +1,6 @@
 # Greetings React UI
 
-### *This project is based on (Copyright 2021) Eder Sampaio reactjs-auth-boilerplate.*
+### *This project is based on [Eder Sampaio reactjs-auth-boilerplate](https://github.com/ederssouza/reactjs-auth-boilerplate).*
 
 -----
 

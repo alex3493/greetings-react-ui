@@ -60,7 +60,7 @@ function Login() {
                 type="email"
                 name="email"
                 placeholder="Enter email"
-                autoComplete="email"
+                autoComplete="username"
                 onChange={handleChange}
               />
             </Form.Group>

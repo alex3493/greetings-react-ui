@@ -1,0 +1,20 @@
+// seconds * minutes * hours * days
+export const COOKIE_EXPIRATION_TIME = 60 * 60 * 24 // 1 day
+export const TOKEN_COOKIE = 'reactauth.token'
+export const REFRESH_TOKEN_COOKIE = 'reactauth.refreshToken'
+
+export const LOGIN_API_ROUTE = '/login_check'
+export const REGISTER_API_ROUTE = '/register'
+export const REFRESH_TOKEN_API_ROUTE = '/token/refresh'
+export const USER_ME_API_ROUTE = '/dashboard'
+export const PROFILE_UPDATE_API_ROUTE = '/account/me/update'
+export const CHANGE_PASSWORD_API_ROUTE = '/account/me/change-password'
+export const GREETINGS_LIST_API_ROUTE = '/greetings'
+export const GREETING_CREATE_API_ROUTE = '/greetings'
+export const GREETING_READ_API_ROUTE = '/greeting/{greetingId}'
+export const GREETING_UPDATE_API_ROUTE = '/greeting/{greetingId}'
+export const GREETING_DELETE_API_ROUTE = '/greeting/{greetingId}'
+export const PUSHER_AUTH_API_ROUTE = '/pusher-auth'
+export const ADMIN_GREETING_API_ROUTE = '/admin-greeting'
+export const LOGOUT_FROM_DEVICE_API_ROUTE = '/account/logout/{tokenId}'
+export const LOGOUT_FROM_ALL_DEVICES_API_ROUTE = '/account/me/sign-out'

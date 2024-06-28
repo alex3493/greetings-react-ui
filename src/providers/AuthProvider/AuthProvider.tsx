@@ -119,6 +119,8 @@ function AuthProvider(props: Props) {
     const token = getToken()
 
     function subscribePusher() {
+      // If we do not have a user, bail out.
+      if (!user?.id) return
       try {
         const channel = pusher.subscribe('private-greeting')
         channel.unbind('message_sent')

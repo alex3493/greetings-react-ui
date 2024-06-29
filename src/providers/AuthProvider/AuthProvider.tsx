@@ -15,17 +15,12 @@ import UserModel from '@/models/UserModel'
 import PusherService from '@/services/pusherService'
 
 import toast, { Toaster } from 'react-hot-toast'
+import { AdminGreetingDTO } from '@/models/types'
 
 const pusher = PusherService.shared()
 
 type Props = {
   children: ReactNode
-}
-
-export interface AdminGreetingDTO {
-  author_id: string
-  author_name: string
-  greeting: string
 }
 
 type PusherStates = {
@@ -72,9 +67,7 @@ function AuthProvider(props: Props) {
         setUser(new UserModel(user))
       }
     } catch (error) {
-      /**
-       * an error handler can be added here
-       */
+      console.log('Error getting user data', error)
     } finally {
       setLoadingUserData(false)
     }
@@ -125,7 +118,7 @@ function AuthProvider(props: Props) {
         const channel = pusher.subscribe('private-greeting')
         channel.unbind('message_sent')
         channel.bind('message_sent', (data: AdminGreetingDTO) => {
-          console.log('Pusher message', data, data.author_id, user?.id)
+          console.log('Pusher message', data, data.author_id, user.id)
           notify(data.author_name, data.greeting)
         })
 
@@ -137,7 +130,6 @@ function AuthProvider(props: Props) {
         //   )
         // })
 
-        // We can use this listener to detect network status...
         pusher.connection.bind('state_change', (states: PusherStates) => {
           console.log(
             `DEBUG :: Pusher connection state changed from ${states.previous} to ${states.current}`

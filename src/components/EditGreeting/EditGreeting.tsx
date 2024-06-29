@@ -46,11 +46,14 @@ function EditGreeting(props: Props) {
   >(undefined)
 
   useEffect(() => {
+    // Store current greeting ID for use in clean-up callback.
+    let greetingId: string | number
+
     const loadGreeting = async (id: string | number) => {
       const url = GREETING_READ_API_ROUTE.replace('{greetingId}', id.toString())
+      greetingId = id
 
       setReadRequestStatus('loading')
-
       try {
         const response = await api.get(url)
         const headers = response.headers as AxiosHeaders
@@ -112,6 +115,12 @@ function EditGreeting(props: Props) {
         variant: 'secondary'
       }
       setFormData(defaultGreeting)
+    }
+
+    return () => {
+      mercureService.removeSubscription(
+        'https://symfony.test/greeting/' + greetingId
+      )
     }
   }, [disableSave, greeting, show])
 

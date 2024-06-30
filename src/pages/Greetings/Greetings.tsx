@@ -68,7 +68,7 @@ function Greetings() {
   )
 
   useEffect(() => {
-    async function addSubscription(hubUrl: string) {
+    async function subscribeToListUpdates(hubUrl: string) {
       await mercureService.discoverMercureHub(hubUrl)
       await mercureService.addEventHandler({
         topic: 'https://symfony.test/greetings',
@@ -92,14 +92,18 @@ function Greetings() {
       })
     }
 
+    function unsubscribeFromListUpdates() {
+      mercureService.removeSubscription('https://symfony.test/greetings')
+    }
+
     if (hubUrl.current) {
-      addSubscription(hubUrl.current).catch((error) =>
+      subscribeToListUpdates(hubUrl.current).catch((error) =>
         console.log('Error discovering Mercure hub', error)
       )
     }
 
     return () => {
-      mercureService.removeSubscription('https://symfony.test/greetings')
+      unsubscribeFromListUpdates()
     }
   }, [hubUrl, insertGreeting, removeGreeting, updateGreeting])
 

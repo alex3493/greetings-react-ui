@@ -1,5 +1,5 @@
 import { AxiosError, AxiosHeaders } from 'axios'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { api } from '@/services'
 import {
   GREETING_CREATE_API_ROUTE,
@@ -17,7 +17,7 @@ import MercureService from '@/services/mercureService'
 const mercureService = MercureService.shared()
 
 function Greetings() {
-  const [greetings, setGreetings] = useState<GreetingModel[]>([])
+  const [greetings, dispatch] = useReducer(greetingsReducer, [])
 
   const [greetingToEdit, setGreetingToEdit] = useState<
     GreetingModel | undefined
@@ -33,39 +33,44 @@ function Greetings() {
 
   const { removeAllErrors } = useApiValidation()
 
-  const insertGreeting = useCallback(
-    (greeting: GreetingModel): void => {
-      if (!greetings.find((g) => g.id === greeting.id)) {
-        const updated = [...greetings]
-        updated.unshift(new GreetingModel(greeting))
-        setGreetings(updated.slice(0, 10))
+  function greetingsReducer(greetings: GreetingModel[], action: any) {
+    console.log('greetingsReducer', action)
+    const greeting = action.greeting
+    switch (action.reason) {
+      case 'init': {
+        return action.greetings
       }
-    },
-    [greetings]
-  )
-
-  const updateGreeting = useCallback(
-    (greeting: GreetingModel): void => {
-      const index = greetings.findIndex((g) => g.id === greeting.id)
-      if (index >= 0) {
-        const updated = [...greetings]
-        updated.splice(index, 1, new GreetingModel(greeting))
-        setGreetings(updated)
+      case 'create': {
+        if (!greetings.find((g) => g.id === greeting.id)) {
+          const updated = [...greetings]
+          updated.unshift(new GreetingModel(greeting))
+          return updated.slice(0, 10)
+        }
+        return greetings
       }
-    },
-    [greetings]
-  )
-  const removeGreeting = useCallback(
-    (id: string | number): void => {
-      const index = greetings.findIndex((g) => g.id === id)
-      if (index >= 0) {
-        const updated = [...greetings]
-        updated.splice(index, 1)
-        setGreetings(updated)
+      case 'update': {
+        const index = greetings.findIndex((g) => g.id === greeting.id)
+        if (index >= 0) {
+          const updated = [...greetings]
+          updated.splice(index, 1, new GreetingModel(greeting))
+          return updated
+        }
+        return greetings
       }
-    },
-    [greetings]
-  )
+      case 'delete': {
+        const index = greetings.findIndex((g) => g.id === greeting.id)
+        if (index >= 0) {
+          const updated = [...greetings]
+          updated.splice(index, 1)
+          return updated
+        }
+        return greetings
+      }
+      default: {
+        throw Error('Unknown action reason')
+      }
+    }
+  }
 
   useEffect(() => {
     async function subscribeToListUpdates(hubUrl: string) {
@@ -76,18 +81,10 @@ function Greetings() {
           const data = JSON.parse(event.data)
           console.log('***** Mercure Event', data)
 
-          if (data.reason === 'create') {
-            console.log('greeting/addGreeting', data.greeting)
-            insertGreeting(new GreetingModel(data.greeting))
-          }
-          if (data.reason === 'update') {
-            console.log('greeting/updateGreeting', data.greeting)
-            updateGreeting(data.greeting)
-          }
-          if (data.reason === 'delete') {
-            console.log('greeting/deleteGreeting', data.greeting.id)
-            removeGreeting(data.greeting.id)
-          }
+          dispatch({
+            reason: data.reason,
+            greeting: data.greeting
+          })
         }
       })
     }
@@ -105,7 +102,7 @@ function Greetings() {
     return () => {
       unsubscribeFromListUpdates()
     }
-  }, [hubUrl, insertGreeting, removeGreeting, updateGreeting])
+  }, [hubUrl, greetings])
 
   useEffect(() => {
     async function loadGreetings() {
@@ -116,7 +113,10 @@ function Greetings() {
         const data = (response?.data?.greetings || []).map(
           (g: GreetingModel) => new GreetingModel(g)
         )
-        setGreetings(data)
+        dispatch({
+          reason: 'init',
+          greetings: data
+        })
 
         const headers = response.headers as AxiosHeaders
 
@@ -166,7 +166,10 @@ function Greetings() {
         .then((response) => {
           console.log('Create greeting API response', response)
           onEditGreetingClose()
-          insertGreeting(response.data.greeting)
+          dispatch({
+            reason: 'create',
+            greeting: response.data.greeting
+          })
         })
         .catch((error) => console.log('Error updating greeting', error))
         .finally(() => setSavingGreeting(false))
@@ -181,7 +184,10 @@ function Greetings() {
         .then((response) => {
           console.log('Update greeting API response', response)
           onEditGreetingClose()
-          updateGreeting(response.data.greeting)
+          dispatch({
+            reason: 'update',
+            greeting: response.data.greeting
+          })
         })
         .catch((error) => console.log('Error updating greeting', error))
         .finally(() => setSavingGreeting(false))
@@ -197,7 +203,10 @@ function Greetings() {
     api
       .delete(url)
       .then(() => {
-        removeGreeting(greeting.id)
+        dispatch({
+          reason: 'delete',
+          greeting: greeting
+        })
         // TODO: reload greetings it order to get previous items (if any).
       })
       .catch((error) => console.log('Error deleting greeting', error))
@@ -225,7 +234,7 @@ function Greetings() {
         </thead>
         <tbody>
           {greetings?.length > 0 ? (
-            greetings.map((greeting) => (
+            greetings.map((greeting: GreetingModel) => (
               <tr
                 key={greeting.id}
                 className={'table-' + greeting.variant.name}

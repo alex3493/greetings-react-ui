@@ -31,7 +31,7 @@ function Greetings() {
 
   const hubUrl = useRef<string>('')
 
-  const [isHubReady, setIsHubReady] = useState<boolean>(false)
+  const [isHubLinkReady, setIsHubLinkReady] = useState<boolean>(false)
 
   const { removeAllErrors } = useApiValidation()
 
@@ -44,7 +44,8 @@ function Greetings() {
     greetings: GreetingModel[],
     action: GreetingUpdateAction
   ) {
-    console.log('greetingsReducer', action)
+    console.log('Dispatched action: ' + action.reason, [...action.payload])
+
     if (action.reason === 'init') {
       // Payload is an array, so we use it as is.
       return action.payload
@@ -115,7 +116,7 @@ function Greetings() {
       mercureService.removeSubscription('https://symfony.test/greetings')
     }
 
-    if (isHubReady) {
+    if (isHubLinkReady) {
       subscribeToListUpdates(hubUrl.current).catch((error) =>
         console.log('Error discovering Mercure hub', error)
       )
@@ -124,7 +125,7 @@ function Greetings() {
     return () => {
       unsubscribeFromListUpdates()
     }
-  }, [isHubReady])
+  }, [isHubLinkReady])
 
   useEffect(() => {
     async function loadGreetings() {
@@ -148,13 +149,13 @@ function Greetings() {
         )
         if (link && link.length === 2) {
           hubUrl.current = link[1]
-          setIsHubReady(true)
+          setIsHubLinkReady(true)
         } else {
           console.log('ERROR :: Discovery link missing or invalid')
-          setIsHubReady(false)
+          setIsHubLinkReady(false)
         }
       } catch (error) {
-        setIsHubReady(false)
+        setIsHubLinkReady(false)
         return error as AxiosError
       } finally {
         setDataLoaded(true)

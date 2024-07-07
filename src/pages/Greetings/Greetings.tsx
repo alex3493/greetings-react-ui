@@ -1,5 +1,5 @@
 import { AxiosError, AxiosHeaders } from 'axios'
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { api } from '@/services'
 import {
   GREETING_CREATE_API_ROUTE,
@@ -11,10 +11,7 @@ import GreetingModel from '@/models/GreetingModel'
 import { Button, Table } from 'react-bootstrap'
 import { CanAccess, EditGreeting } from '@/components'
 import { GreetingUpdateDTO } from '@/models/types'
-import { useApiValidation } from '@/hooks'
-import MercureService from '@/services/mercureService'
-
-const mercureService = MercureService.shared()
+import { useApiValidation, useMercureUpdates } from '@/hooks'
 
 function Greetings() {
   const [greetings, dispatch] = useReducer(greetingsReducer, [])
@@ -29,9 +26,8 @@ function Greetings() {
 
   const [savingGreeting, setSavingGreeting] = useState<boolean>(false)
 
-  const hubUrl = useRef<string>('')
-
-  const [isHubLinkReady, setIsHubLinkReady] = useState<boolean>(false)
+  const { discoverMercureHub, addSubscription, removeSubscription } =
+    useMercureUpdates()
 
   const { removeAllErrors } = useApiValidation()
 
@@ -96,38 +92,6 @@ function Greetings() {
   }
 
   useEffect(() => {
-    async function subscribeToListUpdates(hubUrl: string) {
-      await mercureService.discoverMercureHub(hubUrl)
-      await mercureService.addEventHandler({
-        topic: 'https://symfony.test/greetings',
-        callback: (event: MessageEvent) => {
-          const data = JSON.parse(event.data)
-          console.log('***** Mercure Event', data)
-
-          dispatch({
-            reason: data.reason,
-            payload: [data.greeting]
-          })
-        }
-      })
-    }
-
-    function unsubscribeFromListUpdates() {
-      mercureService.removeSubscription('https://symfony.test/greetings')
-    }
-
-    if (isHubLinkReady) {
-      subscribeToListUpdates(hubUrl.current).catch((error) =>
-        console.log('Error discovering Mercure hub', error)
-      )
-    }
-
-    return () => {
-      unsubscribeFromListUpdates()
-    }
-  }, [isHubLinkReady])
-
-  useEffect(() => {
     async function loadGreetings() {
       setDataLoaded(false)
 
@@ -147,15 +111,28 @@ function Greetings() {
           'Link',
           /<([^>]+)>;\s+rel=(?:mercure|"[^"]*mercure[^"]*")/
         )
+
         if (link && link.length === 2) {
-          hubUrl.current = link[1]
-          setIsHubLinkReady(true)
+          console.log('Discover Mercure Hub', link[1])
+
+          await discoverMercureHub(link[1])
+          addSubscription(
+            'https://symfony.test/greetings',
+            'list_updates',
+            (event: MessageEvent) => {
+              const data = JSON.parse(event.data)
+              console.log('***** Mercure Event', data)
+
+              dispatch({
+                reason: data.reason,
+                payload: [data.greeting]
+              })
+            }
+          )
         } else {
           console.log('ERROR :: Discovery link missing or invalid')
-          setIsHubLinkReady(false)
         }
       } catch (error) {
-        setIsHubLinkReady(false)
         return error as AxiosError
       } finally {
         setDataLoaded(true)
@@ -168,8 +145,9 @@ function Greetings() {
 
     return () => {
       setDataLoaded(false)
+      removeSubscription('https://symfony.test/greetings', 'list_updates')
     }
-  }, [])
+  }, [addSubscription, discoverMercureHub, removeSubscription])
 
   const createGreeting = () => {
     setShowEditModal(true)
@@ -245,7 +223,7 @@ function Greetings() {
   }
 
   return (
-    <div>
+    <>
       <h1>Greetings</h1>
 
       <Table>
@@ -328,7 +306,7 @@ function Greetings() {
         submit={saveGreeting}
         disableSave={savingGreeting}
       />
-    </div>
+    </>
   )
 }
 

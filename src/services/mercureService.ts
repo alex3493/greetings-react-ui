@@ -31,6 +31,13 @@ export default class MercureService {
     return !!this.mercureAuthToken && !!this.mercureUrl
   }
 
+  // TODO: Reserved...
+  // isHubReadyFunc(): () => boolean {
+  //   return () => {
+  //     return !!this.mercureAuthToken && !!this.mercureUrl
+  //   }
+  // }
+
   setHubUrl(url: string) {
     this.mercureUrl = url
   }

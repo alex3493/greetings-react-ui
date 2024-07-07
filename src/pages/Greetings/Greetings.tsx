@@ -31,17 +31,39 @@ function Greetings() {
 
   const hubUrl = useRef<string>('')
 
+  const [isHubReady, setIsHubReady] = useState<boolean>(false)
+
   const { removeAllErrors } = useApiValidation()
 
-  function greetingsReducer(greetings: GreetingModel[], action: any) {
+  type GreetingUpdateAction = {
+    reason: string
+    payload: GreetingModel[]
+  }
+
+  function greetingsReducer(
+    greetings: GreetingModel[],
+    action: GreetingUpdateAction
+  ) {
     console.log('greetingsReducer', action)
-    const greeting = action.greeting
+    if (action.reason === 'init') {
+      // Payload is an array, so we use it as is.
+      return action.payload
+    }
+
+    // Payload should be a single-element array at this point,
+    // get the greeting entity as action subject.
+    const greeting = action.payload.pop()
+    if (!greeting) {
+      return greetings
+    }
+
+    // Get greeting to update index (if any).
+    const existingIndex = greetings.findIndex((g) => g.id === greeting.id)
+
     switch (action.reason) {
-      case 'init': {
-        return action.greetings
-      }
       case 'create': {
-        if (!greetings.find((g) => g.id === greeting.id)) {
+        if (existingIndex === -1) {
+          // Only act if greeting doesn't already exist in list.
           const updated = [...greetings]
           updated.unshift(new GreetingModel(greeting))
           return updated.slice(0, 10)
@@ -49,19 +71,19 @@ function Greetings() {
         return greetings
       }
       case 'update': {
-        const index = greetings.findIndex((g) => g.id === greeting.id)
-        if (index >= 0) {
+        if (existingIndex >= 0) {
+          // Only act if greeting exists in list.
           const updated = [...greetings]
-          updated.splice(index, 1, new GreetingModel(greeting))
+          updated.splice(existingIndex, 1, new GreetingModel(greeting))
           return updated
         }
         return greetings
       }
       case 'delete': {
-        const index = greetings.findIndex((g) => g.id === greeting.id)
-        if (index >= 0) {
+        if (existingIndex >= 0) {
+          // Only act if greeting exists in list.
           const updated = [...greetings]
-          updated.splice(index, 1)
+          updated.splice(existingIndex, 1)
           return updated
         }
         return greetings
@@ -83,7 +105,7 @@ function Greetings() {
 
           dispatch({
             reason: data.reason,
-            greeting: data.greeting
+            payload: [data.greeting]
           })
         }
       })
@@ -93,7 +115,7 @@ function Greetings() {
       mercureService.removeSubscription('https://symfony.test/greetings')
     }
 
-    if (hubUrl.current) {
+    if (isHubReady) {
       subscribeToListUpdates(hubUrl.current).catch((error) =>
         console.log('Error discovering Mercure hub', error)
       )
@@ -102,7 +124,7 @@ function Greetings() {
     return () => {
       unsubscribeFromListUpdates()
     }
-  }, [hubUrl, greetings])
+  }, [isHubReady])
 
   useEffect(() => {
     async function loadGreetings() {
@@ -115,7 +137,7 @@ function Greetings() {
         )
         dispatch({
           reason: 'init',
-          greetings: data
+          payload: data
         })
 
         const headers = response.headers as AxiosHeaders
@@ -126,10 +148,13 @@ function Greetings() {
         )
         if (link && link.length === 2) {
           hubUrl.current = link[1]
+          setIsHubReady(true)
         } else {
           console.log('ERROR :: Discovery link missing or invalid')
+          setIsHubReady(false)
         }
       } catch (error) {
+        setIsHubReady(false)
         return error as AxiosError
       } finally {
         setDataLoaded(true)
@@ -168,7 +193,7 @@ function Greetings() {
           onEditGreetingClose()
           dispatch({
             reason: 'create',
-            greeting: response.data.greeting
+            payload: [response.data.greeting]
           })
         })
         .catch((error) => console.log('Error updating greeting', error))
@@ -186,7 +211,7 @@ function Greetings() {
           onEditGreetingClose()
           dispatch({
             reason: 'update',
-            greeting: response.data.greeting
+            payload: [response.data.greeting]
           })
         })
         .catch((error) => console.log('Error updating greeting', error))
@@ -205,7 +230,7 @@ function Greetings() {
       .then(() => {
         dispatch({
           reason: 'delete',
-          greeting: greeting
+          payload: [greeting]
         })
         // TODO: reload greetings it order to get previous items (if any).
       })

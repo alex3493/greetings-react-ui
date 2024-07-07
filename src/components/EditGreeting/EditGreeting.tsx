@@ -47,6 +47,7 @@ function EditGreeting(props: Props) {
 
   useEffect(() => {
     // Store current greeting ID for use in clean-up callback.
+    // TODO: extract greetingId to ref.
     let greetingId: string | number
 
     const loadGreeting = async (id: string | number) => {
@@ -118,9 +119,11 @@ function EditGreeting(props: Props) {
     }
 
     return () => {
-      mercureService.removeSubscription(
-        'https://symfony.test/greeting/' + greetingId
-      )
+      if (greeting) {
+        mercureService.removeSubscription(
+          'https://symfony.test/greeting/' + greeting.id
+        )
+      }
     }
   }, [disableSave, greeting, show])
 
@@ -139,7 +142,7 @@ function EditGreeting(props: Props) {
   }
 
   const acceptUpdate = () => {
-    console.log('***** Accepting update', updatedGreeting)
+    console.log('Accepting update', updatedGreeting)
     if (updatedGreeting) {
       setFormData(new GreetingModel(updatedGreeting).toFormData())
       setUpdateAlert(false)

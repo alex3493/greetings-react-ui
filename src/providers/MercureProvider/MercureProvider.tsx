@@ -106,7 +106,7 @@ function MercureProvider(props: Props) {
   }
 
   function removeSubscription(topic: string, id: string) {
-    console.log('Removing subscription', topic)
+    console.log('Removing subscription', topic, id)
     const existingIndex = subscriptions.current.findIndex(
       (s: Subscription) => s.topic === topic && s.id === id
     )

@@ -9,13 +9,11 @@ import {
   Spinner
 } from 'react-bootstrap'
 import { GreetingUpdateDTO } from '@/models/types'
-import MercureService from '@/services/mercureService'
 import { GREETING_READ_API_ROUTE } from '@/utils'
 import { api } from '@/services'
 import { AxiosHeaders } from 'axios'
 import ValidatedControl from '@/components/ValidatedControl'
-
-const mercureService = MercureService.shared()
+import { useMercureUpdates } from '@/hooks'
 
 type Props = {
   greeting: GreetingModel | undefined
@@ -45,14 +43,12 @@ function EditGreeting(props: Props) {
     GreetingModel | undefined
   >(undefined)
 
-  useEffect(() => {
-    // Store current greeting ID for use in clean-up callback.
-    // TODO: extract greetingId to ref.
-    let greetingId: string | number
+  const { discoverMercureHub, addSubscription, removeSubscription } =
+    useMercureUpdates()
 
+  useEffect(() => {
     const loadGreeting = async (id: string | number) => {
       const url = GREETING_READ_API_ROUTE.replace('{greetingId}', id.toString())
-      greetingId = id
 
       setReadRequestStatus('loading')
       try {
@@ -66,11 +62,12 @@ function EditGreeting(props: Props) {
         if (link && link.length === 2) {
           const hubUrl = link[1]
 
-          await mercureService.discoverMercureHub(hubUrl)
+          await discoverMercureHub(hubUrl)
 
-          await mercureService.addEventHandler({
-            topic: 'https://symfony.test/greeting/' + id,
-            callback: (event: MessageEvent) => {
+          addSubscription(
+            'https://symfony.test/greeting/' + id,
+            'item_updates',
+            (event: MessageEvent) => {
               const data = JSON.parse(event.data)
               console.log('***** Mercure Event', data)
 
@@ -84,7 +81,7 @@ function EditGreeting(props: Props) {
                 setDeleteAlert(true)
               }
             }
-          })
+          )
         } else {
           console.log('ERROR :: Discovery link missing or invalid')
         }
@@ -120,12 +117,20 @@ function EditGreeting(props: Props) {
 
     return () => {
       if (greeting) {
-        mercureService.removeSubscription(
-          'https://symfony.test/greeting/' + greeting.id
+        removeSubscription(
+          'https://symfony.test/greeting/' + greeting.id,
+          'item_updates'
         )
       }
     }
-  }, [disableSave, greeting, show])
+  }, [
+    addSubscription,
+    disableSave,
+    discoverMercureHub,
+    greeting,
+    removeSubscription,
+    show
+  ])
 
   const getButtonActiveVariant = (variant: string) => {
     return variant === formData.variant ? variant : 'outline-' + variant

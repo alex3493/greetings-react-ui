@@ -200,6 +200,7 @@ function MercureProvider(props: Props) {
           1
         )
 
+        // Remove empty subscriptions.
         if (subscriptions.current[subscriptionIndex].callbacks.length === 0) {
           removeSubscription(topic)
         }
@@ -212,7 +213,9 @@ function MercureProvider(props: Props) {
       value={{
         discoverMercureHub,
         addSubscription,
-        removeSubscription
+        removeSubscription,
+        addEventHandler,
+        removeEventHandler
       }}
     >
       {children}

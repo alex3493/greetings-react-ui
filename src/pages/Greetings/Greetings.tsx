@@ -26,8 +26,13 @@ function Greetings() {
 
   const [savingGreeting, setSavingGreeting] = useState<boolean>(false)
 
-  const { discoverMercureHub, addSubscription, removeSubscription } =
-    useMercureUpdates()
+  const {
+    discoverMercureHub,
+    addSubscription,
+    removeSubscription
+    // addEventHandler,
+    // removeEventHandler
+  } = useMercureUpdates()
 
   const { removeAllErrors } = useApiValidation()
 
@@ -126,7 +131,7 @@ function Greetings() {
           console.log('Discover Mercure Hub', link[1])
 
           await discoverMercureHub(link[1])
-          addSubscription(
+          await addSubscription(
             'https://symfony.test/greetings',
             subscriptionCallback
           )
@@ -146,9 +151,14 @@ function Greetings() {
 
     return () => {
       setDataLoaded(false)
-      removeSubscription('https://symfony.test/greetings', 'list_updates')
+      removeSubscription('https://symfony.test/greetings')
     }
-  }, [addSubscription, discoverMercureHub, removeSubscription])
+  }, [
+    addSubscription,
+    discoverMercureHub,
+    removeSubscription,
+    subscriptionCallback
+  ])
 
   const createGreeting = () => {
     setShowEditModal(true)

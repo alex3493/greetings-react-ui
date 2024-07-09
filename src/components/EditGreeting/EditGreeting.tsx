@@ -81,8 +81,7 @@ function EditGreeting(props: Props) {
           const hubUrl = link[1]
 
           await discoverMercureHub(hubUrl)
-
-          addSubscription(
+          await addSubscription(
             'https://symfony.test/greeting/' + id,
             subscriptionCallback
           )
@@ -121,10 +120,7 @@ function EditGreeting(props: Props) {
 
     return () => {
       if (greeting) {
-        removeSubscription(
-          'https://symfony.test/greeting/' + greeting.id,
-          'item_updates'
-        )
+        removeSubscription('https://symfony.test/greeting/' + greeting.id)
       }
     }
   }, [
@@ -133,7 +129,8 @@ function EditGreeting(props: Props) {
     discoverMercureHub,
     greeting,
     removeSubscription,
-    show
+    show,
+    subscriptionCallback
   ])
 
   const getButtonActiveVariant = (variant: string) => {

@@ -1,5 +1,5 @@
 import { AxiosError, AxiosHeaders } from 'axios'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useState } from 'react'
 import { api } from '@/services'
 import {
   GREETING_CREATE_API_ROUTE,
@@ -11,13 +11,10 @@ import GreetingModel from '@/models/GreetingModel'
 import { Button, Table } from 'react-bootstrap'
 import { CanAccess, EditGreeting } from '@/components'
 import { GreetingUpdateDTO } from '@/models/types'
-import { useApiValidation } from '@/hooks'
-import MercureService from '@/services/mercureService'
-
-const mercureService = MercureService.shared()
+import { useApiValidation, useMercureUpdates } from '@/hooks'
 
 function Greetings() {
-  const [greetings, setGreetings] = useState<GreetingModel[]>([])
+  const [greetings, dispatch] = useReducer(greetingsReducer, [])
 
   const [greetingToEdit, setGreetingToEdit] = useState<
     GreetingModel | undefined
@@ -29,83 +26,85 @@ function Greetings() {
 
   const [savingGreeting, setSavingGreeting] = useState<boolean>(false)
 
-  const hubUrl = useRef<string>('')
+  const {
+    discoverMercureHub,
+    addSubscription,
+    removeSubscription
+    // addEventHandler,
+    // removeEventHandler
+  } = useMercureUpdates()
 
   const { removeAllErrors } = useApiValidation()
 
-  const insertGreeting = useCallback(
-    (greeting: GreetingModel): void => {
-      if (!greetings.find((g) => g.id === greeting.id)) {
-        const updated = [...greetings]
-        updated.unshift(new GreetingModel(greeting))
-        setGreetings(updated.slice(0, 10))
-      }
-    },
-    [greetings]
-  )
+  type GreetingUpdateAction = {
+    reason: string
+    payload: GreetingModel[]
+  }
 
-  const updateGreeting = useCallback(
-    (greeting: GreetingModel): void => {
-      const index = greetings.findIndex((g) => g.id === greeting.id)
-      if (index >= 0) {
-        const updated = [...greetings]
-        updated.splice(index, 1, new GreetingModel(greeting))
-        setGreetings(updated)
-      }
-    },
-    [greetings]
-  )
-  const removeGreeting = useCallback(
-    (id: string | number): void => {
-      const index = greetings.findIndex((g) => g.id === id)
-      if (index >= 0) {
-        const updated = [...greetings]
-        updated.splice(index, 1)
-        setGreetings(updated)
-      }
-    },
-    [greetings]
-  )
+  function greetingsReducer(
+    greetings: GreetingModel[],
+    action: GreetingUpdateAction
+  ) {
+    console.log('Dispatched action: ' + action.reason, [...action.payload])
 
-  useEffect(() => {
-    async function subscribeToListUpdates(hubUrl: string) {
-      await mercureService.discoverMercureHub(hubUrl)
-      await mercureService.addEventHandler({
-        topic: 'https://symfony.test/greetings',
-        callback: (event: MessageEvent) => {
-          const data = JSON.parse(event.data)
-          console.log('***** Mercure Event', data)
+    if (action.reason === 'init') {
+      // Payload is an array, so we use it as is.
+      return action.payload
+    }
 
-          if (data.reason === 'create') {
-            console.log('greeting/addGreeting', data.greeting)
-            insertGreeting(new GreetingModel(data.greeting))
-          }
-          if (data.reason === 'update') {
-            console.log('greeting/updateGreeting', data.greeting)
-            updateGreeting(data.greeting)
-          }
-          if (data.reason === 'delete') {
-            console.log('greeting/deleteGreeting', data.greeting.id)
-            removeGreeting(data.greeting.id)
-          }
+    // Payload should be a single-element array at this point,
+    // get the greeting entity as action subject.
+    const greeting = action.payload.pop()
+    if (!greeting) {
+      return greetings
+    }
+
+    // Get greeting to update index (if any).
+    const existingIndex = greetings.findIndex((g) => g.id === greeting.id)
+
+    switch (action.reason) {
+      case 'create': {
+        if (existingIndex === -1) {
+          // Only act if greeting doesn't already exist in list.
+          const updated = [...greetings]
+          updated.unshift(new GreetingModel(greeting))
+          return updated.slice(0, 10)
         }
-      })
+        return greetings
+      }
+      case 'update': {
+        if (existingIndex >= 0) {
+          // Only act if greeting exists in list.
+          const updated = [...greetings]
+          updated.splice(existingIndex, 1, new GreetingModel(greeting))
+          return updated
+        }
+        return greetings
+      }
+      case 'delete': {
+        if (existingIndex >= 0) {
+          // Only act if greeting exists in list.
+          const updated = [...greetings]
+          updated.splice(existingIndex, 1)
+          return updated
+        }
+        return greetings
+      }
+      default: {
+        throw Error('Unknown action reason')
+      }
     }
+  }
 
-    function unsubscribeFromListUpdates() {
-      mercureService.removeSubscription('https://symfony.test/greetings')
-    }
+  const subscriptionCallback = useCallback((event: MessageEvent) => {
+    const data = JSON.parse(event.data)
+    console.log('***** Mercure Event in list update', data)
 
-    if (hubUrl.current) {
-      subscribeToListUpdates(hubUrl.current).catch((error) =>
-        console.log('Error discovering Mercure hub', error)
-      )
-    }
-
-    return () => {
-      unsubscribeFromListUpdates()
-    }
-  }, [hubUrl, insertGreeting, removeGreeting, updateGreeting])
+    dispatch({
+      reason: data.reason,
+      payload: [data.greeting]
+    })
+  }, [])
 
   useEffect(() => {
     async function loadGreetings() {
@@ -116,7 +115,10 @@ function Greetings() {
         const data = (response?.data?.greetings || []).map(
           (g: GreetingModel) => new GreetingModel(g)
         )
-        setGreetings(data)
+        dispatch({
+          reason: 'init',
+          payload: data
+        })
 
         const headers = response.headers as AxiosHeaders
 
@@ -124,8 +126,15 @@ function Greetings() {
           'Link',
           /<([^>]+)>;\s+rel=(?:mercure|"[^"]*mercure[^"]*")/
         )
+
         if (link && link.length === 2) {
-          hubUrl.current = link[1]
+          console.log('Discover Mercure Hub', link[1])
+
+          await discoverMercureHub(link[1])
+          await addSubscription(
+            'https://symfony.test/greetings',
+            subscriptionCallback
+          )
         } else {
           console.log('ERROR :: Discovery link missing or invalid')
         }
@@ -142,8 +151,14 @@ function Greetings() {
 
     return () => {
       setDataLoaded(false)
+      removeSubscription('https://symfony.test/greetings')
     }
-  }, [])
+  }, [
+    addSubscription,
+    discoverMercureHub,
+    removeSubscription,
+    subscriptionCallback
+  ])
 
   const createGreeting = () => {
     setShowEditModal(true)
@@ -166,7 +181,10 @@ function Greetings() {
         .then((response) => {
           console.log('Create greeting API response', response)
           onEditGreetingClose()
-          insertGreeting(response.data.greeting)
+          dispatch({
+            reason: 'create',
+            payload: [response.data.greeting]
+          })
         })
         .catch((error) => console.log('Error updating greeting', error))
         .finally(() => setSavingGreeting(false))
@@ -181,7 +199,10 @@ function Greetings() {
         .then((response) => {
           console.log('Update greeting API response', response)
           onEditGreetingClose()
-          updateGreeting(response.data.greeting)
+          dispatch({
+            reason: 'update',
+            payload: [response.data.greeting]
+          })
         })
         .catch((error) => console.log('Error updating greeting', error))
         .finally(() => setSavingGreeting(false))
@@ -197,7 +218,10 @@ function Greetings() {
     api
       .delete(url)
       .then(() => {
-        removeGreeting(greeting.id)
+        dispatch({
+          reason: 'delete',
+          payload: [greeting]
+        })
         // TODO: reload greetings it order to get previous items (if any).
       })
       .catch((error) => console.log('Error deleting greeting', error))
@@ -210,7 +234,7 @@ function Greetings() {
   }
 
   return (
-    <div>
+    <>
       <h1>Greetings</h1>
 
       <Table>
@@ -225,7 +249,7 @@ function Greetings() {
         </thead>
         <tbody>
           {greetings?.length > 0 ? (
-            greetings.map((greeting) => (
+            greetings.map((greeting: GreetingModel) => (
               <tr
                 key={greeting.id}
                 className={'table-' + greeting.variant.name}
@@ -293,7 +317,7 @@ function Greetings() {
         submit={saveGreeting}
         disableSave={savingGreeting}
       />
-    </div>
+    </>
   )
 }
 

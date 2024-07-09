@@ -1,5 +1,5 @@
 import GreetingModel from '@/models/GreetingModel'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
   Button,
@@ -9,13 +9,11 @@ import {
   Spinner
 } from 'react-bootstrap'
 import { GreetingUpdateDTO } from '@/models/types'
-import MercureService from '@/services/mercureService'
 import { GREETING_READ_API_ROUTE } from '@/utils'
 import { api } from '@/services'
 import { AxiosHeaders } from 'axios'
 import ValidatedControl from '@/components/ValidatedControl'
-
-const mercureService = MercureService.shared()
+import { useMercureUpdates } from '@/hooks'
 
 type Props = {
   greeting: GreetingModel | undefined
@@ -45,13 +43,30 @@ function EditGreeting(props: Props) {
     GreetingModel | undefined
   >(undefined)
 
-  useEffect(() => {
-    // Store current greeting ID for use in clean-up callback.
-    let greetingId: string | number
+  const { discoverMercureHub, addSubscription, removeSubscription } =
+    useMercureUpdates()
 
+  const subscriptionCallback = useCallback(
+    (event: MessageEvent) => {
+      const data = JSON.parse(event.data)
+      console.log('***** Mercure Event in item update', data)
+
+      // Do not show updated alert if already saving the greeting.
+      if (data.reason === 'update' && !disableSave) {
+        setUpdateAlert(true)
+        setUpdatedGreeting(data.greeting)
+      }
+
+      if (data.reason === 'delete') {
+        setDeleteAlert(true)
+      }
+    },
+    [disableSave]
+  )
+
+  useEffect(() => {
     const loadGreeting = async (id: string | number) => {
       const url = GREETING_READ_API_ROUTE.replace('{greetingId}', id.toString())
-      greetingId = id
 
       setReadRequestStatus('loading')
       try {
@@ -65,25 +80,11 @@ function EditGreeting(props: Props) {
         if (link && link.length === 2) {
           const hubUrl = link[1]
 
-          await mercureService.discoverMercureHub(hubUrl)
-
-          await mercureService.addEventHandler({
-            topic: 'https://symfony.test/greeting/' + id,
-            callback: (event: MessageEvent) => {
-              const data = JSON.parse(event.data)
-              console.log('***** Mercure Event', data)
-
-              // Do not show updated alert if already saving the greeting.
-              if (data.reason === 'update' && !disableSave) {
-                setUpdateAlert(true)
-                setUpdatedGreeting(data.greeting)
-              }
-
-              if (data.reason === 'delete') {
-                setDeleteAlert(true)
-              }
-            }
-          })
+          await discoverMercureHub(hubUrl)
+          await addSubscription(
+            'https://symfony.test/greeting/' + id,
+            subscriptionCallback
+          )
         } else {
           console.log('ERROR :: Discovery link missing or invalid')
         }
@@ -118,11 +119,19 @@ function EditGreeting(props: Props) {
     }
 
     return () => {
-      mercureService.removeSubscription(
-        'https://symfony.test/greeting/' + greetingId
-      )
+      if (greeting) {
+        removeSubscription('https://symfony.test/greeting/' + greeting.id)
+      }
     }
-  }, [disableSave, greeting, show])
+  }, [
+    addSubscription,
+    disableSave,
+    discoverMercureHub,
+    greeting,
+    removeSubscription,
+    show,
+    subscriptionCallback
+  ])
 
   const getButtonActiveVariant = (variant: string) => {
     return variant === formData.variant ? variant : 'outline-' + variant
@@ -139,7 +148,7 @@ function EditGreeting(props: Props) {
   }
 
   const acceptUpdate = () => {
-    console.log('***** Accepting update', updatedGreeting)
+    console.log('Accepting update', updatedGreeting)
     if (updatedGreeting) {
       setFormData(new GreetingModel(updatedGreeting).toFormData())
       setUpdateAlert(false)

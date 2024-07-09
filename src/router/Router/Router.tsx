@@ -3,6 +3,7 @@ import { useRoutePaths } from '@/hooks'
 import { Greetings, Login, Profile, Register } from '@/pages'
 import { PrivateRoute } from '../PrivateRoute'
 import { PublicRoute } from '../PublicRoute'
+import { MercureProvider } from '@/providers'
 
 function Router() {
   const { LOGIN_PATH, PROFILE_PATH, REGISTER_PATH, ROOT_PATH } = useRoutePaths()
@@ -16,7 +17,9 @@ function Router() {
             permissions={['greetings.list']}
             redirectTo={LOGIN_PATH}
           >
-            <Greetings />
+            <MercureProvider>
+              <Greetings />
+            </MercureProvider>
           </PrivateRoute>
         }
       />

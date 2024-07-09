@@ -9,9 +9,8 @@ type Props = {
 
 export type Subscription = {
   topic: string
-  id: string
   eventSource: EventSourcePolyfill
-  callback: (event: MessageEvent) => void
+  callbacks: ((event: MessageEvent) => void)[]
 }
 
 function MercureProvider(props: Props) {
@@ -56,7 +55,6 @@ function MercureProvider(props: Props) {
 
   async function addSubscription(
     topic: string,
-    id: string,
     callback: (event: MessageEvent) => void
   ) {
     if (!isHubReady()) {
@@ -65,11 +63,32 @@ function MercureProvider(props: Props) {
       )
     }
 
-    console.log('Adding subscription', topic, id)
-    const existing = subscriptions.current.find(
-      (s: Subscription) => s.topic === topic && s.id === id
+    console.log('Adding subscription', topic)
+    const existingIndex = subscriptions.current.findIndex(
+      (s: Subscription) => s.topic === topic
     )
-    if (!existing) {
+    if (existingIndex >= 0) {
+      // Check that the callback is not yet registered.
+      if (
+        !subscriptions.current[existingIndex].callbacks.find(
+          (c) => c === callback
+        )
+      ) {
+        subscriptions.current[existingIndex].callbacks.push(callback)
+        subscriptions.current[existingIndex].eventSource.addEventListener(
+          'message',
+          callback as never
+        )
+      }
+
+      console.log(
+        'Updated subscription: current subscriptions',
+        topic,
+        subscriptions.current
+      )
+
+      return Promise.resolve(subscriptions.current[existingIndex])
+    } else {
       // Only add subscription if not yet registered.
       const encoded = encodeURIComponent(topic)
       try {
@@ -87,36 +106,104 @@ function MercureProvider(props: Props) {
 
         subscriptions.current.push({
           topic,
-          id,
           eventSource,
-          callback
+          callbacks: [callback]
         })
+
+        console.log(
+          'Added subscription: current subscriptions',
+          topic,
+          subscriptions.current
+        )
 
         return Promise.resolve({
           topic,
-          id,
           eventSource
         })
       } catch (error) {
         return Promise.reject(error)
       }
     }
-
-    return Promise.resolve(existing)
   }
 
-  function removeSubscription(topic: string, id: string) {
-    console.log('Removing subscription', topic, id)
+  async function addEventHandler(
+    topic: string,
+    callback: (event: MessageEvent) => void
+  ) {
     const existingIndex = subscriptions.current.findIndex(
-      (s: Subscription) => s.topic === topic && s.id === id
+      (s: Subscription) => s.topic === topic
+    )
+
+    if (existingIndex === -1) {
+      return await addSubscription(topic, callback)
+    } else {
+      const callbackIndex = subscriptions.current[
+        existingIndex
+      ].callbacks.findIndex((c) => c === callback)
+      if (callbackIndex === -1) {
+        subscriptions.current[existingIndex].callbacks.push(callback)
+        subscriptions.current[existingIndex].eventSource.addEventListener(
+          'message',
+          callback as never
+        )
+      }
+      return Promise.resolve({
+        topic,
+        eventSource: subscriptions.current[existingIndex].eventSource
+      })
+    }
+  }
+
+  function removeSubscription(topic: string) {
+    console.log('Removing subscription', topic)
+    const existingIndex = subscriptions.current.findIndex(
+      (s: Subscription) => s.topic === topic
     )
     if (existingIndex >= 0) {
-      subscriptions.current[existingIndex].eventSource.removeEventListener(
-        'message',
-        subscriptions.current[existingIndex].callback as never
-      )
-      subscriptions.current[existingIndex].eventSource?.close()
+      const subscription = subscriptions.current[existingIndex]
+      const callbacks = subscriptions.current[existingIndex].callbacks || []
+      callbacks.forEach((c) => {
+        subscription.eventSource.removeEventListener('message', c as never)
+      })
+
+      subscription.eventSource?.close()
       subscriptions.current.splice(existingIndex, 1)
+    }
+
+    console.log(
+      'Removed subscription: current subscriptions',
+      topic,
+      subscriptions.current
+    )
+  }
+
+  function removeEventHandler(
+    topic: string,
+    callback: (event: MessageEvent) => void
+  ) {
+    const subscriptionIndex = subscriptions.current.findIndex(
+      (s: Subscription) => s.topic === topic
+    )
+
+    if (subscriptionIndex >= 0) {
+      const callbackIndex = subscriptions.current[
+        subscriptionIndex
+      ].callbacks.findIndex((c) => c === callback)
+
+      if (callbackIndex >= 0) {
+        subscriptions.current[
+          subscriptionIndex
+        ].eventSource.removeEventListener('message', callback as never)
+
+        subscriptions.current[subscriptionIndex].callbacks.splice(
+          callbackIndex,
+          1
+        )
+
+        if (subscriptions.current[subscriptionIndex].callbacks.length === 0) {
+          removeSubscription(topic)
+        }
+      }
     }
   }
 

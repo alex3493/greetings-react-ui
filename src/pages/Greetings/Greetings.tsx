@@ -1,5 +1,5 @@
 import { AxiosError, AxiosHeaders } from 'axios'
-import { useEffect, useReducer, useState } from 'react'
+import { useCallback, useEffect, useReducer, useState } from 'react'
 import { api } from '@/services'
 import {
   GREETING_CREATE_API_ROUTE,
@@ -91,6 +91,16 @@ function Greetings() {
     }
   }
 
+  const subscriptionCallback = useCallback((event: MessageEvent) => {
+    const data = JSON.parse(event.data)
+    console.log('***** Mercure Event in list update', data)
+
+    dispatch({
+      reason: data.reason,
+      payload: [data.greeting]
+    })
+  }, [])
+
   useEffect(() => {
     async function loadGreetings() {
       setDataLoaded(false)
@@ -118,16 +128,7 @@ function Greetings() {
           await discoverMercureHub(link[1])
           addSubscription(
             'https://symfony.test/greetings',
-            'list_updates',
-            (event: MessageEvent) => {
-              const data = JSON.parse(event.data)
-              console.log('***** Mercure Event', data)
-
-              dispatch({
-                reason: data.reason,
-                payload: [data.greeting]
-              })
-            }
+            subscriptionCallback
           )
         } else {
           console.log('ERROR :: Discovery link missing or invalid')

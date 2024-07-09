@@ -1,5 +1,5 @@
 import GreetingModel from '@/models/GreetingModel'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
   Button,
@@ -46,6 +46,24 @@ function EditGreeting(props: Props) {
   const { discoverMercureHub, addSubscription, removeSubscription } =
     useMercureUpdates()
 
+  const subscriptionCallback = useCallback(
+    (event: MessageEvent) => {
+      const data = JSON.parse(event.data)
+      console.log('***** Mercure Event in item update', data)
+
+      // Do not show updated alert if already saving the greeting.
+      if (data.reason === 'update' && !disableSave) {
+        setUpdateAlert(true)
+        setUpdatedGreeting(data.greeting)
+      }
+
+      if (data.reason === 'delete') {
+        setDeleteAlert(true)
+      }
+    },
+    [disableSave]
+  )
+
   useEffect(() => {
     const loadGreeting = async (id: string | number) => {
       const url = GREETING_READ_API_ROUTE.replace('{greetingId}', id.toString())
@@ -66,21 +84,7 @@ function EditGreeting(props: Props) {
 
           addSubscription(
             'https://symfony.test/greeting/' + id,
-            'item_updates',
-            (event: MessageEvent) => {
-              const data = JSON.parse(event.data)
-              console.log('***** Mercure Event', data)
-
-              // Do not show updated alert if already saving the greeting.
-              if (data.reason === 'update' && !disableSave) {
-                setUpdateAlert(true)
-                setUpdatedGreeting(data.greeting)
-              }
-
-              if (data.reason === 'delete') {
-                setDeleteAlert(true)
-              }
-            }
+            subscriptionCallback
           )
         } else {
           console.log('ERROR :: Discovery link missing or invalid')

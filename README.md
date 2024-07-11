@@ -42,17 +42,19 @@ is not persisted anywhere. This is a pure demo feature for Pusher connectivity.
 
 1. Clone this repo
 2. cd to project root folder
-3. cp .env.development .env.development.local
-4. Edit .env.development.local file: set `REACT_APP_PUSHER_APP_KEY` and `REACT_APP_PUSHER_CLUSTER` env variables using your account data.
 
-### Docker (prod mode)
+### Docker (production mode)
 
+3. cp .env.production .env.production.local
+4. Edit .env.production.local file: set `REACT_APP_PUSHER_APP_KEY` and `REACT_APP_PUSHER_CLUSTER` env variables using your account data.
 5. Run `docker compose build`
 6. Run `docker compose up -d`
 7. Open http://localhost:8080 in your browser
 
-### Local hot-reload (dev mode)
+### Local hot-reload (development mode)
 
+3. cp .env.development .env.development.local
+4. Edit .env.development.local file: set `REACT_APP_PUSHER_APP_KEY` and `REACT_APP_PUSHER_CLUSTER` env variables using your account data.
 5. Run `npm install`
 6. Run `npm run dev`
 7. Open the link displayed in terminal when `npm run dev` is running (with API docker container running it will most likely point to http://localhost:3001, because port 3000 is occupied by Symfony Mercure)

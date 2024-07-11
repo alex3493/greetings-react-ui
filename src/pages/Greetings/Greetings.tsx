@@ -59,14 +59,16 @@ function Greetings() {
       return greetings
     }
 
-    // Get greeting to update index (if any).
+    // Get greeting-to-update index (if any).
     const existingIndex = greetings.findIndex((g) => g.id === greeting.id)
+
+    // Copy current value.
+    const updated = [...greetings]
 
     switch (action.reason) {
       case 'create': {
         if (existingIndex === -1) {
           // Only act if greeting doesn't already exist in list.
-          const updated = [...greetings]
           updated.unshift(new GreetingModel(greeting))
           return updated.slice(0, 10)
         }
@@ -75,7 +77,6 @@ function Greetings() {
       case 'update': {
         if (existingIndex >= 0) {
           // Only act if greeting exists in list.
-          const updated = [...greetings]
           updated.splice(existingIndex, 1, new GreetingModel(greeting))
           return updated
         }
@@ -84,7 +85,6 @@ function Greetings() {
       case 'delete': {
         if (existingIndex >= 0) {
           // Only act if greeting exists in list.
-          const updated = [...greetings]
           updated.splice(existingIndex, 1)
           return updated
         }
@@ -239,72 +239,72 @@ function Greetings() {
 
       <Table>
         <thead>
-          <tr>
-            <th>Created</th>
-            <th>From</th>
-            <th>Text</th>
-            <th>Updated</th>
-            <th></th>
-          </tr>
+        <tr>
+          <th>Created</th>
+          <th>From</th>
+          <th>Text</th>
+          <th>Updated</th>
+          <th></th>
+        </tr>
         </thead>
         <tbody>
-          {greetings?.length > 0 ? (
-            greetings.map((greeting: GreetingModel) => (
-              <tr
-                key={greeting.id}
-                className={'table-' + greeting.variant.name}
-              >
-                <td>{greeting.getCreatedAt()}</td>
-                <td>{greeting.author.display_name}</td>
-                <td>{greeting.text}</td>
-                <td>
-                  {greeting.updated_at && (
-                    <>
-                      {greeting.getUpdatedAt()}
-                      {/* Only show user's name here if it's distinct from greeting author */}
-                      {greeting.updated_by.id !== greeting.author.id && (
-                        <>
-                          <br />
-                          {greeting.updated_by.display_name}
-                        </>
-                      )}
-                    </>
-                  )}
-                </td>
-                <td>
-                  <CanAccess
-                    permissions={['greeting.update']}
-                    entity={greeting}
+        {greetings?.length > 0 ? (
+          greetings.map((greeting: GreetingModel) => (
+            <tr
+              key={greeting.id}
+              className={'table-' + greeting.variant.name}
+            >
+              <td>{greeting.getCreatedAt()}</td>
+              <td>{greeting.author.display_name}</td>
+              <td>{greeting.text}</td>
+              <td>
+                {greeting.updated_at && (
+                  <>
+                    {greeting.getUpdatedAt()}
+                    {/* Only show user's name here if it's distinct from greeting author */}
+                    {greeting.updated_by.id !== greeting.author.id && (
+                      <>
+                        <br />
+                        {greeting.updated_by.display_name}
+                      </>
+                    )}
+                  </>
+                )}
+              </td>
+              <td>
+                <CanAccess
+                  permissions={['greeting.update']}
+                  entity={greeting}
+                >
+                  <Button
+                    className="mx-1"
+                    onClick={() => editGreeting(greeting)}
                   >
-                    <Button
-                      className="mx-1"
-                      onClick={() => editGreeting(greeting)}
-                    >
-                      Edit
-                    </Button>
-                  </CanAccess>
-                  <CanAccess
-                    permissions={['greeting.delete']}
-                    entity={greeting}
+                    Edit
+                  </Button>
+                </CanAccess>
+                <CanAccess
+                  permissions={['greeting.delete']}
+                  entity={greeting}
+                >
+                  <Button
+                    className="mx-1"
+                    onClick={() => deleteGreeting(greeting)}
+                    variant="danger"
                   >
-                    <Button
-                      className="mx-1"
-                      onClick={() => deleteGreeting(greeting)}
-                      variant="danger"
-                    >
-                      Delete
-                    </Button>
-                  </CanAccess>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={5}>
-                {dataLoaded ? 'Empty greeting list' : 'Loading...'}
+                    Delete
+                  </Button>
+                </CanAccess>
               </td>
             </tr>
-          )}
+          ))
+        ) : (
+          <tr>
+            <td colSpan={5}>
+              {dataLoaded ? 'Empty greeting list' : 'Loading...'}
+            </td>
+          </tr>
+        )}
         </tbody>
       </Table>
       <Button onClick={() => createGreeting()} className="mb-4">

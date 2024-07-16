@@ -112,6 +112,7 @@ function Greetings() {
 
       try {
         const response = await api.get(GREETINGS_LIST_API_ROUTE)
+        console.log('Load greetings API response', response)
         const data = (response?.data?.greetings || []).map(
           (g: GreetingModel) => new GreetingModel(g)
         )
@@ -186,7 +187,7 @@ function Greetings() {
             payload: [response.data.greeting]
           })
         })
-        .catch((error) => console.log('Error updating greeting', error))
+        .catch((error) => console.log('Error creating greeting', error))
         .finally(() => setSavingGreeting(false))
     } else {
       // Existing greeting.

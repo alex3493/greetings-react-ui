@@ -189,22 +189,6 @@ function Greetings() {
         .then((response) => {
           console.log('Create greeting API response', response)
           onEditGreetingClose()
-
-          // We are testing reducer issue here.
-          // TODO: logic in reducer is not working in strict mode.
-
-          // Brute-force reducer "init" does work, but this is not what we expected for updates...
-
-          // const testGreetings = [
-          //   new GreetingModel(response.data.greeting),
-          //   ...greetings
-          // ]
-          //
-          // dispatch({
-          //   reason: 'init',
-          //   payload: testGreetings
-          // })
-
           dispatch({
             type: 'create',
             greeting: response.data.greeting

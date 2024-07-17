@@ -36,25 +36,30 @@ function Greetings() {
 
   const { removeAllErrors } = useApiValidation()
 
-  type GreetingUpdateAction = {
-    reason: string
-    payload: GreetingModel[]
+  type GreetingsUpdateAction = {
+    type: string
+    greeting?: GreetingModel | undefined
+    greetings?: GreetingModel[] | undefined
   }
 
   function greetingsReducer(
     greetings: GreetingModel[],
-    action: GreetingUpdateAction
+    action: GreetingsUpdateAction
   ) {
-    console.log('Dispatched action: ' + action.reason, [...action.payload])
+    console.log(
+      'Dispatched action: ' + action.type,
+      action.greeting,
+      action.greetings
+    )
 
-    if (action.reason === 'init') {
+    if (action.type === 'init') {
       // Payload is an array, so we use it as is.
-      return action.payload
+      return action.greetings || []
     }
 
     // Payload should be a single-element array at this point,
     // get the greeting entity as action subject.
-    const greeting = action.payload.pop()
+    const greeting = action.greeting as GreetingModel
     if (!greeting) {
       return greetings
     }
@@ -65,7 +70,7 @@ function Greetings() {
     // Copy current value.
     const updated = [...greetings]
 
-    switch (action.reason) {
+    switch (action.type) {
       case 'create': {
         if (existingIndex === -1) {
           // Only act if greeting doesn't already exist in list.
@@ -78,6 +83,7 @@ function Greetings() {
         if (existingIndex >= 0) {
           // Only act if greeting exists in list.
           updated.splice(existingIndex, 1, new GreetingModel(greeting))
+
           return updated
         }
         return greetings
@@ -101,8 +107,8 @@ function Greetings() {
     console.log('***** Mercure Event in list update', data)
 
     dispatch({
-      reason: data.reason,
-      payload: [data.greeting]
+      type: data.reason,
+      greeting: data.greeting
     })
   }, [])
 
@@ -112,12 +118,14 @@ function Greetings() {
 
       try {
         const response = await api.get(GREETINGS_LIST_API_ROUTE)
+        console.log('Load greetings API response', response)
         const data = (response?.data?.greetings || []).map(
           (g: GreetingModel) => new GreetingModel(g)
         )
+
         dispatch({
-          reason: 'init',
-          payload: data
+          type: 'init',
+          greetings: data
         })
 
         const headers = response.headers as AxiosHeaders
@@ -182,11 +190,11 @@ function Greetings() {
           console.log('Create greeting API response', response)
           onEditGreetingClose()
           dispatch({
-            reason: 'create',
-            payload: [response.data.greeting]
+            type: 'create',
+            greeting: response.data.greeting
           })
         })
-        .catch((error) => console.log('Error updating greeting', error))
+        .catch((error) => console.log('Error creating greeting', error))
         .finally(() => setSavingGreeting(false))
     } else {
       // Existing greeting.
@@ -200,8 +208,8 @@ function Greetings() {
           console.log('Update greeting API response', response)
           onEditGreetingClose()
           dispatch({
-            reason: 'update',
-            payload: [response.data.greeting]
+            type: 'update',
+            greeting: response.data.greeting
           })
         })
         .catch((error) => console.log('Error updating greeting', error))
@@ -217,10 +225,11 @@ function Greetings() {
     )
     api
       .delete(url)
-      .then(() => {
+      .then((response) => {
+        console.log('Delete greeting API response', response)
         dispatch({
-          reason: 'delete',
-          payload: [greeting]
+          type: 'delete',
+          greeting
         })
         // TODO: reload greetings it order to get previous items (if any).
       })

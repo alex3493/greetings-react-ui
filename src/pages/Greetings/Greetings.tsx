@@ -47,7 +47,7 @@ function Greetings() {
     action: GreetingsUpdateAction
   ) {
     console.log(
-      'Dispatched action: ' + action.type,
+      'Greetings :: Dispatched action: ' + action.type,
       action.greeting,
       action.greetings
     )

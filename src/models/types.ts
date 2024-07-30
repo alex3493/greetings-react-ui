@@ -26,7 +26,7 @@ export interface UserProfileForm {
   last_name: string
 }
 
-export interface UserUpdatePasswordForm {
+export interface UserChangePasswordForm {
   current_password: string
   password: string
   password_confirmation: string

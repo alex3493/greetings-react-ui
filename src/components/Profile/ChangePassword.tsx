@@ -1,6 +1,6 @@
 import { Button, Card, Form, Spinner } from 'react-bootstrap'
 import React, { useEffect, useState } from 'react'
-import { useSession } from '@/hooks'
+import { useApiValidation, useSession } from '@/hooks'
 import { api } from '@/services'
 import { CHANGE_PASSWORD_API_ROUTE } from '@/utils'
 import ValidatedControl from '@/components/ValidatedControl'
@@ -23,9 +23,12 @@ function ChangePassword() {
 
   const { signOut } = useSession()
 
+  const { removeErrors } = useApiValidation()
+
   useEffect(() => {
     console.log('ChangePassword component rendered')
-  })
+    removeErrors('User')
+  }, [removeErrors])
 
   function handleChange(value: string, name: string) {
     setValues({

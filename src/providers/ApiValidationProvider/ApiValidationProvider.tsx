@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useReducer, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useReducer } from 'react'
 import {
   ApiValidationContext,
   ApiValidationData,
@@ -6,7 +6,6 @@ import {
 } from '@/contexts'
 import { api } from '@/services'
 import { AxiosError, AxiosResponse } from 'axios'
-import GreetingModel from '@/models/GreetingModel'
 
 type Props = {
   children: ReactNode
@@ -14,8 +13,6 @@ type Props = {
 
 function ApiValidationProvider(props: Props) {
   const { children } = props
-
-  // const [errorData, setErrorData] = useState<ApiValidationError[]>([])
 
   const [errorData, dispatch] = useReducer(errorDataReducer, [])
 
@@ -90,26 +87,29 @@ function ApiValidationProvider(props: Props) {
     return undefined
   }
 
-  const removeAllErrors = () => {
+  const removeAllErrors = useCallback(() => {
     dispatch({
       type: 'remove-all'
     })
-  }
+  }, [])
 
-  const removeErrors = (context: string, property?: string | undefined) => {
-    dispatch({
-      type: 'remove',
-      context,
-      property
-    })
-  }
+  const removeErrors = useCallback(
+    (context: string, property?: string | undefined) => {
+      dispatch({
+        type: 'remove',
+        context,
+        property
+      })
+    },
+    []
+  )
 
-  const mergeErrors = (data: ApiValidationData) => {
+  const mergeErrors = useCallback((data: ApiValidationData) => {
     dispatch({
       type: 'merge',
       errors: data.errors
     })
-  }
+  }, [])
 
   const onResponse = (response: AxiosResponse) => {
     return response
@@ -133,7 +133,6 @@ function ApiValidationProvider(props: Props) {
       // we just set "General" context error.
       dispatch({
         type: 'merge',
-        context: 'General',
         errors: [
           { errors: [data?.message || 'Server error'], context: 'General' }
         ]

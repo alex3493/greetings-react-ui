@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode, useEffect, useReducer, useState } from 'react'
 import {
   ApiValidationContext,
   ApiValidationData,
@@ -6,6 +6,7 @@ import {
 } from '@/contexts'
 import { api } from '@/services'
 import { AxiosError, AxiosResponse } from 'axios'
+import GreetingModel from '@/models/GreetingModel'
 
 type Props = {
   children: ReactNode
@@ -14,7 +15,61 @@ type Props = {
 function ApiValidationProvider(props: Props) {
   const { children } = props
 
-  const [errorData, setErrorData] = useState<ApiValidationError[]>([])
+  // const [errorData, setErrorData] = useState<ApiValidationError[]>([])
+
+  const [errorData, dispatch] = useReducer(errorDataReducer, [])
+
+  type errorsUpdateAction = {
+    type: string
+    errors?: ApiValidationError[] | undefined
+    context?: string
+    property?: string
+  }
+
+  function errorDataReducer(
+    errorData: ApiValidationError[],
+    action: errorsUpdateAction
+  ) {
+    console.log(
+      'Error data reducer :: Dispatched action: ' + action.type,
+      action.errors,
+      action.context,
+      action.property
+    )
+
+    let updatedErrors = [...errorData]
+
+    switch (action.type) {
+      case 'remove-all':
+        return []
+      case 'remove':
+        if (action.property) {
+          updatedErrors = errorData.filter(
+            (e) =>
+              e.context !== action.context || e.property !== action.property
+          )
+        } else {
+          updatedErrors = errorData.filter((e) => e.context !== action.context)
+        }
+
+        return updatedErrors
+      case 'merge':
+        action.errors?.forEach((error) => {
+          const index = updatedErrors.findIndex(
+            (e) => e.context === error.context && e.property === error.property
+          )
+          if (index >= 0) {
+            updatedErrors.splice(index, 1, error)
+          } else {
+            updatedErrors.push(error)
+          }
+        })
+
+        return updatedErrors
+    }
+
+    return errorData
+  }
 
   const hasErrors = (context: string, property?: string | undefined) => {
     return getErrors(context, property) !== undefined
@@ -36,37 +91,24 @@ function ApiValidationProvider(props: Props) {
   }
 
   const removeAllErrors = () => {
-    setErrorData([])
+    dispatch({
+      type: 'remove-all'
+    })
   }
 
   const removeErrors = (context: string, property?: string | undefined) => {
-    let errors
-
-    if (property) {
-      errors = errorData.filter(
-        (e) => e.context !== context || e.property !== property
-      )
-    } else {
-      errors = errorData.filter((e) => e.context !== context)
-    }
-
-    setErrorData(errors)
+    dispatch({
+      type: 'remove',
+      context,
+      property
+    })
   }
 
-  const mergeErrors = (data: ApiValidationData): ApiValidationError[] => {
-    const existingErrors = [...errorData]
-    data.errors.forEach((error) => {
-      const index = existingErrors.findIndex(
-        (e) => e.context === error.context && e.property === error.property
-      )
-      if (index >= 0) {
-        existingErrors.splice(index, 1, error)
-      } else {
-        existingErrors.push(error)
-      }
+  const mergeErrors = (data: ApiValidationData) => {
+    dispatch({
+      type: 'merge',
+      errors: data.errors
     })
-
-    return existingErrors
   }
 
   const onResponse = (response: AxiosResponse) => {
@@ -79,7 +121,7 @@ function ApiValidationProvider(props: Props) {
     if (data?.errors) {
       console.log('Validation errors:', data?.errors)
       // We have Api validation error.
-      setErrorData(mergeErrors(data))
+      mergeErrors(data)
     } else {
       console.log(
         'Response error:',
@@ -89,13 +131,13 @@ function ApiValidationProvider(props: Props) {
       // Regular error response, e.g. 401 during login.
       // For regular error responses there is no need to merge errors:
       // we just set "General" context error.
-      setErrorData([
-        {
-          context: 'General',
-          property: undefined,
-          errors: [data?.message || 'Server error']
-        }
-      ])
+      dispatch({
+        type: 'merge',
+        context: 'General',
+        errors: [
+          { errors: [data?.message || 'Server error'], context: 'General' }
+        ]
+      })
     }
 
     // Rethrow error after we update validation context data.

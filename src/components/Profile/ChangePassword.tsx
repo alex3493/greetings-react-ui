@@ -1,5 +1,5 @@
 import { Button, Card, Form, Spinner } from 'react-bootstrap'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSession } from '@/hooks'
 import { api } from '@/services'
 import { CHANGE_PASSWORD_API_ROUTE } from '@/utils'
@@ -22,6 +22,10 @@ function ChangePassword() {
   })
 
   const { signOut } = useSession()
+
+  useEffect(() => {
+    console.log('ChangePassword component rendered')
+  })
 
   function handleChange(value: string, name: string) {
     setValues({

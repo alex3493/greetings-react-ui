@@ -86,7 +86,7 @@ function BusyIndicatorProvider(props: Props) {
       config: InternalAxiosRequestConfig<AxiosRequestConfig>
     ): InternalAxiosRequestConfig<AxiosRequestConfig> => {
       // console.log(
-      //   "BusyIndicator onRequest",
+      //   'BusyIndicator onRequest',
       //   config.method,
       //   config.url,
       //   // JSON.stringify(config, null, 2),
@@ -142,7 +142,7 @@ function BusyIndicatorProvider(props: Props) {
 
     const onResponseError = (error: AxiosError): Promise<AxiosError> => {
       // console.log(
-      //   "BusyIndicator onResponseError",
+      //   'BusyIndicator onResponseError',
       //   error.config?.method,
       //   error.config?.url,
       //   // JSON.stringify(error, null, 2),

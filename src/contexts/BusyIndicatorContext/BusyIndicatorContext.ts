@@ -15,6 +15,7 @@ export type BusyIndicatorData = {
     activity?: 'all' | 'sending' | 'receiving'
   ) => boolean
   isBusy: (activity?: 'all' | 'sending' | 'receiving') => boolean
+  busyCount: () => number
 }
 
 const BusyIndicatorContext = createContext({} as BusyIndicatorData)

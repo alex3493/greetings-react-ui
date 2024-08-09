@@ -5,11 +5,13 @@ import { Router } from './router'
 import Container from 'react-bootstrap/Container'
 import { ApiValidationProvider } from '@/providers/ApiValidationProvider'
 import { BusyIndicatorProvider } from '@/providers'
+import { LoadingProgressBar } from '@/components'
 
 function App() {
   return (
     <BrowserRouter>
       <BusyIndicatorProvider>
+        <LoadingProgressBar />
         <ApiValidationProvider>
           <AuthProvider>
             <NavBar />

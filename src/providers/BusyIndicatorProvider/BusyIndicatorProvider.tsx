@@ -108,11 +108,11 @@ function BusyIndicatorProvider(props: Props) {
 
     const onResponse = (response: AxiosResponse): AxiosResponse => {
       // console.log(
-      //   "BusyIndicator onResponse",
+      //   'BusyIndicator onResponse',
       //   response.config.method,
-      //   response.config.url,
+      //   response.config.url
       //   // JSON.stringify(response, null, 2),
-      // );
+      // )
 
       if (response.config.url && response.config.method) {
         dispatch({
@@ -201,6 +201,10 @@ function BusyIndicatorProvider(props: Props) {
     return busyEndpoints.filter((e) => e.type === 'sending').length
   }
 
+  const busyCount = () => {
+    return loadingCount() + sendingCount()
+  }
+
   const isBusy = (activity?: 'all' | 'sending' | 'receiving') => {
     if (!activity || activity === 'all') {
       return loadingCount() + sendingCount() > 0
@@ -230,7 +234,8 @@ function BusyIndicatorProvider(props: Props) {
         loadingCount,
         sendingCount,
         isEndpointBusy,
-        isBusy
+        isBusy,
+        busyCount
       }}
     >
       {children}

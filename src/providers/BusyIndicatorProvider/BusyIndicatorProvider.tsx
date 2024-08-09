@@ -1,6 +1,11 @@
 import { ReactNode, useEffect, useReducer } from 'react'
 import { BusyEndpoint, BusyIndicatorContext } from '@/contexts'
-import { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import {
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig
+} from 'axios'
 import { api } from '@/services'
 
 type Props = {
@@ -78,8 +83,8 @@ function BusyIndicatorProvider(props: Props) {
 
   useEffect(() => {
     const onRequest = (
-      config: InternalAxiosRequestConfig<any>
-    ): InternalAxiosRequestConfig<any> => {
+      config: InternalAxiosRequestConfig<AxiosRequestConfig>
+    ): InternalAxiosRequestConfig<AxiosRequestConfig> => {
       // console.log(
       //   "BusyIndicator onRequest",
       //   config.method,

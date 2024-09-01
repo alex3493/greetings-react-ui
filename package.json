@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@types/event-source-polyfill": "^1.0.5",
-    "axios": "^1.7.2",
+    "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
     "event-source-polyfill": "^1.0.31",
     "nookies": "^2.5.2",
